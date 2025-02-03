@@ -140,6 +140,7 @@ class MainActivity : AppCompatActivity(), TrackAdapter.OnAdapterListener {
                 startScan()
                 Toast.makeText(this, "Quyền đã được cấp", Toast.LENGTH_SHORT).show()
             } else {
+                requestPermission()
                 Toast.makeText(this, "Quyền bị từ chối", Toast.LENGTH_SHORT).show()
             }
         }

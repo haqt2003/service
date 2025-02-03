@@ -6,11 +6,13 @@ import android.app.Service
 import android.content.ContentUris
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.BitmapFactory
 import android.media.MediaPlayer
 import android.os.Build
 import android.os.IBinder
 import android.provider.MediaStore
 import android.support.v4.media.session.MediaSessionCompat
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.example.service.CHANNEL_ID
@@ -26,6 +28,7 @@ import kotlinx.coroutines.launch
 const val PREV = "prev"
 const val PLAY_PAUSE = "play_pause"
 const val NEXT = "next"
+const val SEEK = "seek"
 const val STOP = "stop"
 const val UPDATE_TRACK = "update_track"
 
@@ -35,6 +38,7 @@ class MusicService : Service() {
     private lateinit var currentTrack: Track
     private var maxDuration = 0L
     private var currentDuration = 0L
+    private var progress = 0
 
     private var musicList = mutableListOf<Track>()
     private var isPlaying = false
@@ -47,8 +51,9 @@ class MusicService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        progress = intent?.getIntExtra("progress", 0) ?: 0
         musicList = intent?.getParcelableArrayListExtra("tracks") ?: musicList
-        val track = intent?.getParcelableExtra<Track>("track") ?: currentTrack
+        val track = intent?.getParcelableExtra("track") ?: currentTrack
 
         track.let {
             currentTrack = it
@@ -66,6 +71,10 @@ class MusicService : Service() {
 
                 PLAY_PAUSE -> {
                     playPause()
+                }
+
+                SEEK -> {
+                    seek()
                 }
 
                 STOP -> {
@@ -123,6 +132,10 @@ class MusicService : Service() {
         sendNotification(currentTrack)
     }
 
+    private fun seek() {
+        mediaPlayer.seekTo(progress)
+    }
+
     private fun play() {
         mediaPlayer.reset()
         mediaPlayer = MediaPlayer()
@@ -152,7 +165,12 @@ class MusicService : Service() {
             while (true) {
                 currentDuration = mediaPlayer.currentPosition.toLong()
                 sendTrackUpdate()
+                sendNotification(currentTrack)
                 delay(1000)
+
+                mediaPlayer.setOnCompletionListener {
+                    next()
+                }
             }
         }
     }
@@ -160,6 +178,8 @@ class MusicService : Service() {
     private fun sendTrackUpdate() {
         val intent = Intent(UPDATE_TRACK).apply {
             putExtra("track", currentTrack)
+            putExtra("isPlaying", mediaPlayer.isPlaying)
+            putExtra("currentDuration", currentDuration)
         }
         sendBroadcast(intent)
     }
@@ -190,15 +210,15 @@ class MusicService : Service() {
                 createPlayPausePendingIntent()
             )
             .addAction(R.drawable.ic_next, "next", createNextPendingIntent())
-            .setSmallIcon(R.drawable.ic_launcher_background)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setSilent(true)
-//            .setLargeIcon(
-//                BitmapFactory.decodeResource(
-//                    resources,
-//                    R.drawable.ic_launcher_background
-//                )
-//            )
+            .setLargeIcon(
+                BitmapFactory.decodeResource(
+                    resources,
+                    R.drawable.banner
+                )
+            )
             .build()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

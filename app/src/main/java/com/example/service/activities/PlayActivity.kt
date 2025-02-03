@@ -1,9 +1,12 @@
 package com.example.service.activities
 
+import android.animation.ObjectAnimator
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.view.animation.LinearInterpolator
+import android.widget.SeekBar
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
@@ -18,6 +21,7 @@ import com.example.service.services.MusicService
 import com.example.service.services.NEXT
 import com.example.service.services.PLAY_PAUSE
 import com.example.service.services.PREV
+import com.example.service.services.SEEK
 import com.example.service.services.STOP
 
 class PlayActivity : AppCompatActivity(), MusicBroadcastReceiver.MusicReceiverListener {
@@ -30,6 +34,9 @@ class PlayActivity : AppCompatActivity(), MusicBroadcastReceiver.MusicReceiverLi
     private lateinit var track: Track
     private var isPlaying = false
 
+    private lateinit var rotateAnimator: ObjectAnimator
+    private var isRotating = false
+
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,8 +48,15 @@ class PlayActivity : AppCompatActivity(), MusicBroadcastReceiver.MusicReceiverLi
             insets
         }
 
+        rotateAnimator = ObjectAnimator.ofFloat(binding.ivThumbnail, "rotation", 0f, 360f).apply {
+            duration = 12000
+            interpolator = LinearInterpolator()
+            repeatCount = ObjectAnimator.INFINITE
+        }
+
         trackList = intent.getParcelableArrayListExtra("tracks") ?: emptyList()
-        track = intent.getParcelableExtra("track") ?: throw IllegalArgumentException("Track is null")
+        track =
+            intent.getParcelableExtra("track") ?: throw IllegalArgumentException("Track is null")
 
         musicReceiver = MusicBroadcastReceiver(this)
         musicReceiver.register(this)
@@ -79,23 +93,54 @@ class PlayActivity : AppCompatActivity(), MusicBroadcastReceiver.MusicReceiverLi
                 action = PREV
             })
         }
+
+        binding.ivClose.setOnClickListener {
+            finish()
+        }
+
+        binding.sbTimeline.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (fromUser) {
+                    binding.tvProgress.text = formatDuration(progress.toLong())
+                    startService(Intent(this@PlayActivity, MusicService::class.java).apply {
+                        action = SEEK
+                        putExtra("progress", seekBar?.progress)
+                    })
+                }
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {
+            }
+
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {
+            }
+        })
     }
 
-    override fun onTrackChanged(track: Track) {
+    override fun onTrackChanged(track: Track, isPlaying: Boolean, currentDuration: Long) {
         binding.tvTitle.text = track.name
         binding.tvDuration.text = formatDuration(track.duration)
+        binding.tvProgress.text = formatDuration(currentDuration)
+        binding.sbTimeline.progress = currentDuration.toInt()
+        binding.sbTimeline.max = track.duration.toInt()
+        if (isPlaying) {
+            binding.ivPlay.visibility = android.view.View.GONE
+            binding.ivPause.visibility = android.view.View.VISIBLE
+            if (!isRotating) {
+                rotateAnimator.start()
+                isRotating = true
+            } else {
+                rotateAnimator.resume()
+            }
+        } else {
+            binding.ivPlay.visibility = android.view.View.VISIBLE
+            binding.ivPause.visibility = android.view.View.GONE
+            rotateAnimator.pause()
+        }
     }
 
     override fun onPlayPauseClicked() {
         Log.d("OPP", "swap")
-        isPlaying = !isPlaying
-        if (isPlaying) {
-            binding.ivPlay.visibility = android.view.View.GONE
-            binding.ivPause.visibility = android.view.View.VISIBLE
-        } else {
-            binding.ivPlay.visibility = android.view.View.VISIBLE
-            binding.ivPause.visibility = android.view.View.GONE
-        }
     }
 
     override fun onPrevClicked() {

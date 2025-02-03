@@ -13,14 +13,6 @@ import com.example.service.services.PREV
 import com.example.service.services.UPDATE_TRACK
 
 class MusicBroadcastReceiver(private val listener: MusicReceiverListener) : BroadcastReceiver() {
-
-    interface MusicReceiverListener {
-        fun onTrackChanged(track: Track)
-        fun onPlayPauseClicked()
-        fun onPrevClicked()
-        fun onNextClicked()
-    }
-
     override fun onReceive(context: Context?, intent: Intent?) {
         if (intent == null) return
         when (intent.action) {
@@ -29,7 +21,9 @@ class MusicBroadcastReceiver(private val listener: MusicReceiverListener) : Broa
             PLAY_PAUSE -> listener.onPlayPauseClicked()
             UPDATE_TRACK -> {
                 val track = intent.getParcelableExtra<Track>("track")
-                if (track != null) listener.onTrackChanged(track)
+                val isPlaying = intent.getBooleanExtra("isPlaying", false)
+                val currentDuration = intent.getLongExtra("currentDuration", 0)
+                if (track != null) listener.onTrackChanged(track, isPlaying, currentDuration)
             }
         }
     }
@@ -47,5 +41,12 @@ class MusicBroadcastReceiver(private val listener: MusicReceiverListener) : Broa
 
     fun unregister(context: Context) {
         context.unregisterReceiver(this)
+    }
+
+    interface MusicReceiverListener {
+        fun onTrackChanged(track: Track, isPlaying: Boolean, currentDuration: Long)
+        fun onPlayPauseClicked()
+        fun onPrevClicked()
+        fun onNextClicked()
     }
 }
