@@ -1,5 +1,6 @@
 package com.example.service.services
 
+import android.Manifest
 import android.Manifest.permission.POST_NOTIFICATIONS
 import android.app.PendingIntent
 import android.app.Service
@@ -12,6 +13,8 @@ import android.os.Build
 import android.os.IBinder
 import android.provider.MediaStore
 import android.support.v4.media.session.MediaSessionCompat
+import androidx.annotation.RequiresApi
+import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.example.service.CHANNEL_ID

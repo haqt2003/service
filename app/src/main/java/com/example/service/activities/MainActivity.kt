@@ -8,8 +8,10 @@ import android.os.Bundle
 import android.provider.MediaStore
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
@@ -31,6 +33,7 @@ class MainActivity : AppCompatActivity(), TrackAdapter.OnAdapterListener {
     private lateinit var adapter: TrackAdapter
     private val tracks = mutableListOf<Track>()
 
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -46,6 +49,11 @@ class MainActivity : AppCompatActivity(), TrackAdapter.OnAdapterListener {
             startScan()
         } else {
             requestPermission()
+        }
+
+        val resultPostNotificationPermission = hasPostNotificationPermission()
+        if (!resultPostNotificationPermission) {
+            requestPostNotificationPermission()
         }
 
         adapter = TrackAdapter(tracks, this)
@@ -128,6 +136,34 @@ class MainActivity : AppCompatActivity(), TrackAdapter.OnAdapterListener {
         }
     }
 
+    private fun hasPostNotificationPermission(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.READ_MEDIA_AUDIO
+            ) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    private fun requestPostNotificationPermission() {
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                1
+            )
+        }
+    }
+
+
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
@@ -142,6 +178,14 @@ class MainActivity : AppCompatActivity(), TrackAdapter.OnAdapterListener {
             } else {
                 requestPermission()
                 Toast.makeText(this, "Quyền bị từ chối", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        if (requestCode == 1) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Permission granted, proceed with your app logic
+            } else {
+                requestPostNotificationPermission()
             }
         }
     }
