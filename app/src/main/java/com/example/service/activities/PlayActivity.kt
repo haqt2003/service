@@ -21,7 +21,9 @@ import com.example.service.services.MusicService
 import com.example.service.services.NEXT
 import com.example.service.services.PLAY_PAUSE
 import com.example.service.services.PREV
+import com.example.service.services.REPEAT
 import com.example.service.services.SEEK
+import com.example.service.services.SHUFFLE
 import com.example.service.services.STOP
 
 class PlayActivity : AppCompatActivity(), MusicBroadcastReceiver.MusicReceiverListener {
@@ -32,10 +34,12 @@ class PlayActivity : AppCompatActivity(), MusicBroadcastReceiver.MusicReceiverLi
     private lateinit var musicReceiver: MusicBroadcastReceiver
     private var trackList = listOf<Track>()
     private lateinit var track: Track
-    private var isPlaying = false
 
     private lateinit var rotateAnimator: ObjectAnimator
     private var isRotating = false
+    private var isPlaying = false
+    private var isShuffling = false
+    private  var isRepeatOne = false
 
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -91,6 +95,23 @@ class PlayActivity : AppCompatActivity(), MusicBroadcastReceiver.MusicReceiverLi
         binding.ivPre.setOnClickListener {
             startService(Intent(this, MusicService::class.java).apply {
                 action = PREV
+            })
+        }
+
+        binding.ivShuffle.setOnClickListener {
+            isShuffling = !isShuffling
+            binding.ivShuffle.setImageResource(if (isShuffling) R.drawable.ic_shuffle_active else R.drawable.ic_shuffle)
+            startService(Intent(this, MusicService::class.java).apply {
+                action = SHUFFLE
+                putParcelableArrayListExtra("tracks", ArrayList(trackList))
+            })
+        }
+
+        binding.ivRepeat.setOnClickListener {
+            isRepeatOne = !isRepeatOne
+            binding.ivRepeat.setImageResource(if (isRepeatOne) R.drawable.ic_repeat_one else R.drawable.ic_repeat)
+            startService(Intent(this, MusicService::class.java).apply {
+                action = REPEAT
             })
         }
 

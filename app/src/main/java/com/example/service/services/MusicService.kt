@@ -12,7 +12,6 @@ import android.os.Build
 import android.os.IBinder
 import android.provider.MediaStore
 import android.support.v4.media.session.MediaSessionCompat
-import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.example.service.CHANNEL_ID
@@ -29,6 +28,8 @@ const val PREV = "prev"
 const val PLAY_PAUSE = "play_pause"
 const val NEXT = "next"
 const val SEEK = "seek"
+const val SHUFFLE = "shuffle"
+const val REPEAT = "repeat"
 const val STOP = "stop"
 const val UPDATE_TRACK = "update_track"
 
@@ -42,6 +43,8 @@ class MusicService : Service() {
 
     private var musicList = mutableListOf<Track>()
     private var isPlaying = false
+    private var isShuffling = false
+    private var isRepeatOne = false
 
     private val scope = CoroutineScope(Dispatchers.Main)
     private var job: Job? = null
@@ -75,6 +78,14 @@ class MusicService : Service() {
 
                 SEEK -> {
                     seek()
+                }
+
+                SHUFFLE -> {
+                    shuffle()
+                }
+
+                REPEAT -> {
+                    repeat()
                 }
 
                 STOP -> {
@@ -136,6 +147,20 @@ class MusicService : Service() {
         mediaPlayer.seekTo(progress)
     }
 
+    private fun shuffle() {
+        isShuffling = !isShuffling
+        if (isShuffling) {
+            val shuffledList = musicList.shuffled()
+            val index = shuffledList.indexOf(currentTrack)
+            currentTrack = shuffledList[index]
+            musicList = shuffledList.toMutableList()
+        }
+    }
+
+    private fun repeat() {
+        isRepeatOne = !isRepeatOne
+    }
+
     private fun play() {
         mediaPlayer.reset()
         mediaPlayer = MediaPlayer()
@@ -169,7 +194,11 @@ class MusicService : Service() {
                 delay(1000)
 
                 mediaPlayer.setOnCompletionListener {
-                    next()
+                    if (isRepeatOne) {
+                        mediaPlayer.start()
+                    } else {
+                        next()
+                    }
                 }
             }
         }
