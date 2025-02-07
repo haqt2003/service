@@ -140,7 +140,7 @@ class MainActivity : AppCompatActivity(), TrackAdapter.OnAdapterListener {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             ActivityCompat.checkSelfPermission(
                 this,
-                Manifest.permission.READ_MEDIA_AUDIO
+                Manifest.permission.POST_NOTIFICATIONS
             ) == PackageManager.PERMISSION_GRANTED
         } else {
             true
